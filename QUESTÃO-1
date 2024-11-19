@@ -1,0 +1,191 @@
+Arquivo index.php
+
+<?php
+require 'database.php';
+$query = "SELECT * FROM livros";
+$stmt = $pdo->query($query);
+$livros = $stmt->fetchAll(PDO::FETCH_ASSOC);
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livraria</title>
+    <style>
+        body {
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+            background-color: beige;
+            color: black;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid black;
+            border-radius: 10px;
+        }
+
+        button {
+            background-color: lightgreen;
+            color: white;
+            cursor: pointer;
+            width: 104%;
+        }
+
+        button:hover {
+            background-color: greenyellow;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid black;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .book-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .book-id {
+            font-size: 0.9em;
+            color: grey;
+        }
+    </style>
+</head>
+<body>
+    <h1>Livraria</h1>
+
+   
+    <h2>Adicionar Livro no Banco de Dados</h2>
+    <form action="add_book.php" method="POST">
+        <label for="titulo">Título:</label>
+        <input type="text" id="titulo" name="titulo" required><br><br>
+        <label for="autor">Autor:</label>
+        <input type="text" id="autor" name="autor" required><br><br>
+        <label for="ano_publicacao">Ano de Publicação:</label>
+        <input type="number" id="ano_publicacao" name="ano_publicacao" required><br><br>
+        <button type="submit">Adicionar</button>
+    </form>
+
+    
+    <h2>Livros Adicionados</h2>
+    <?php if ($livros): ?>
+        <ul>
+            <?php foreach ($livros as $livro): ?>
+                <li>
+                    <div class="book-info">
+                        <span><strong>ID:</strong> <?= htmlspecialchars($livro['id']) ?></span>
+                        <span><strong>Título:</strong> <?= htmlspecialchars($livro['titulo']) ?></span>
+                        <span><strong>Autor:</strong> <?= htmlspecialchars($livro['autor']) ?></span>
+                        <span><strong>Ano:</strong> <?= htmlspecialchars($livro['ano_publicacao']) ?></span>
+                    </div>
+                    <form action="delete_book.php" method="POST" style="display:inline;">
+                        <input type="hidden" name="id" value="<?= htmlspecialchars($livro['id']) ?>">
+                        <button type="submit">Excluir</button>
+                    </form>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php else: ?>
+        <p>Nenhum livro cadastrado.</p>
+    <?php endif; ?>
+</body>
+</html>
+
+Arquivo database.php
+
+<?php
+$dbFile = 'livraria.db';
+
+try {
+    $pdo = new PDO("sqlite:$dbFile");
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+   
+    $query = "
+        CREATE TABLE IF NOT EXISTS livros (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            autor TEXT NOT NULL,
+            ano_publicacao INTEGER NOT NULL
+        )
+    ";
+    $pdo->exec($query);
+} catch (PDOException $e) {
+    die("Erro ao conectar ao banco de dados: " . $e->getMessage());
+}
+?>
+
+Arquivo add_book.php
+
+<?php
+require 'database.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $titulo = $_POST['titulo'] ?? '';
+    $autor = $_POST['autor'] ?? '';
+    $ano_publicacao = $_POST['ano_publicacao'] ?? '';
+
+    if (!empty($titulo) && !empty($autor) && is_numeric($ano_publicacao)) {
+        $query = "INSERT INTO livros (titulo, autor, ano_publicacao) VALUES (:titulo, :autor, :ano_publicacao)";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([
+            ':titulo' => $titulo,
+            ':autor' => $autor,
+            ':ano_publicacao' => $ano_publicacao,
+        ]);
+    }
+}
+
+header('Location: index.php');
+exit;
+?>
+
+
+Arquivo delete_book.php
+
+<?php
+require 'database.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = $_POST['id'] ?? '';
+
+    if (is_numeric($id)) {
+        $query = "DELETE FROM livros WHERE id = :id";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([':id' => $id]);
+    }
+}
+
+header('Location: index.php');
+exit;
+?>
+
+
+
+
+
